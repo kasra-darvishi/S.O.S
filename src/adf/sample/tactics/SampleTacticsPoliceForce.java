@@ -160,23 +160,23 @@ public class SampleTacticsPoliceForce extends TacticsPoliceForce
             }
         }
 //        worldViewer.showTimestep(0);
-        if (this.recentCommand != null)
-        {
-            Action action = null;
-            if (this.recentCommand.getClass() == CommandPolice.class)
-            {
-                action = this.commandExecutorPolice.calc().getAction();
-            }
-            else if (this.recentCommand.getClass() == CommandScout.class)
-            {
-                action = this.commandExecutorScout.calc().getAction();
-            }
-            if (action != null)
-            {
-                this.sendActionMessage(worldInfo, messageManager, agent, action);
-                return action;
-            }
-        }
+//        if (this.recentCommand != null)
+//        {
+//            Action action = null;
+//            if (this.recentCommand.getClass() == CommandPolice.class)
+//            {
+//                action = this.commandExecutorPolice.calc().getAction();
+//            }
+//            else if (this.recentCommand.getClass() == CommandScout.class)
+//            {
+//                action = this.commandExecutorScout.calc().getAction();
+//            }
+//            if (action != null)
+//            {
+//                this.sendActionMessage(worldInfo, messageManager, agent, action);
+//                return action;
+//            }
+//        }
         // autonomous
         EntityID target = this.roadDetector.calc().getTarget();
         Action action = this.actionExtClear.setTarget(target).calc().getAction();
@@ -186,13 +186,13 @@ public class SampleTacticsPoliceForce extends TacticsPoliceForce
             return action;
         }
 
-        target = this.search.calc().getTarget();
-        action = this.actionExtClear.setTarget(target).calc().getAction();
-        if(action != null)
-        {
-            this.sendActionMessage(worldInfo, messageManager, agent, action);
-            return action;
-        }
+//        target = this.search.calc().getTarget();
+//        action = this.actionExtClear.setTarget(target).calc().getAction();
+//        if(action != null)
+//        {
+//            this.sendActionMessage(worldInfo, messageManager, agent, action);
+//            return action;
+//        }
 
         messageManager.addMessage(
                 new MessagePoliceForce(true, agent, MessagePoliceForce.ACTION_REST, agent.getPosition())
