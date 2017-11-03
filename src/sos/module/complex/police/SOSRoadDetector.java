@@ -14,7 +14,6 @@ import adf.agent.info.WorldInfo;
 import adf.agent.module.ModuleManager;
 import adf.agent.precompute.PrecomputeData;
 import adf.component.communication.CommunicationMessage;
-import adf.component.module.algorithm.Clustering;
 import adf.component.module.complex.RoadDetector;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -24,10 +23,10 @@ import sos.module.algorithm.SOSPathPlanning_Police;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
-import static rescuecore2.standard.entities.StandardEntityURN.BLOCKADE;
-import static rescuecore2.standard.entities.StandardEntityURN.HYDRANT;
+import static rescuecore2.standard.entities.StandardEntityURN.*;
 
 /**
  * Created by kasra on 10/19/17.
@@ -41,11 +40,14 @@ public class SOSRoadDetector extends RoadDetector
     private Set<EntityID> targetAreas;
     private Set<EntityID> priorityRoads;
     private EntityID result;
-    private Clustering clustering;
+    private PoliceClustering clustering;
 
     ArrayList<EntityID> isReached;
+    private List<EntityID> centerIDs;
 
     private Logger logger;
+    private PoliceTools policeTools;
+    private int numberOfPF;
 
 
     public SOSRoadDetector(AgentInfo ai, WorldInfo wi, ScenarioInfo si, ModuleManager moduleManager, DevelopData developData)
@@ -55,20 +57,28 @@ public class SOSRoadDetector extends RoadDetector
         PropertyConfigurator.configure("log4j.properties");
         logger = Logger.getLogger("SOSRoadDetector");
         isReached = new ArrayList<>();
+        numberOfPF = worldInfo.getEntitiesOfType(POLICE_FORCE).size();
+
         switch (scenarioInfo.getMode())
         {
             case PRECOMPUTATION_PHASE:
-                this.pathPlanning = /*(SOSPathPlanning_Police)*/ moduleManager.getModule("SampleRoadDetector.PathPlanning", "sos.module.algorithm.SOSPathPlanning");
+                clustering = moduleManager.getModule("", "");
+                this.pathPlanning = /*(SOSPathPlanning_Police)*/ moduleManager.getModule("sos.module.algorithm.SOSPathPlanning", "SampleRoadDetector.PathPlanning");
                 break;
             case PRECOMPUTED:
-                this.pathPlanning = /*(SOSPathPlanning_Police)*/ moduleManager.getModule("SampleRoadDetector.PathPlanning", "sos.module.algorithm.SOSPathPlanning");
+                clustering = moduleManager.getModule("", "");
+                this.pathPlanning = /*(SOSPathPlanning_Police)*/ moduleManager.getModule("sos.module.algorithm.SOSPathPlanning", "SampleRoadDetector.PathPlanning");
                 break;
             case NON_PRECOMPUTE:
-                this.pathPlanning = /*(SOSPathPlanning_Police)*/ moduleManager.getModule("SampleRoadDetector.PathPlanning", "sos.module.algorithm.SOSPathPlanning");
+                clustering = moduleManager.getModule("", "");
+                this.pathPlanning = /*(SOSPathPlanning_Police)*/ moduleManager.getModule("sos.module.algorithm.SOSPathPlanning", "SampleRoadDetector.PathPlanning");
                 break;
         }
         registerModule(this.pathPlanning);
         this.result = null;
+
+        policeTools = new PoliceTools(pathPlanning, logger, worldInfo);
+
 
         states = new ArrayList<>();
     }
@@ -104,6 +114,8 @@ public class SOSRoadDetector extends RoadDetector
         {
             return this;
         }
+        pathPlanning.precompute(precomputeData);
+        clustering.precompute(precomputeData);
 
         return this;
     }
@@ -117,10 +129,20 @@ public class SOSRoadDetector extends RoadDetector
             return this;
         }
 
-        states.add(new UrgentTargets(worldInfo, agentInfo, scenarioInfo, pathPlanning,logger, clustering, isReached));
-        states.add(new OpenMST(worldInfo, agentInfo, scenarioInfo, pathPlanning,logger, clustering, isReached));
+        states.add(new UrgentTargets(worldInfo, agentInfo, scenarioInfo, pathPlanning,logger, clustering, isReached, policeTools));
+        states.add(new OpenMST(worldInfo, agentInfo, scenarioInfo, pathPlanning,logger, clustering, isReached, policeTools));
+
+        centerIDs = precomputeData.getEntityIDList("sample.clustering.centers");
+
+        //TODO kasra >> this could be done only once in the precompute phase. so change if it takes shorter time!
+        //calculates MST on center of clusters
+        findMST();
 
         return this;
+    }
+
+    private void findMST() {
+        policeTools.prime(centerIDs.size(), centerIDs, true);
     }
 
     @Override
@@ -132,8 +154,8 @@ public class SOSRoadDetector extends RoadDetector
             return this;
         }
 
-        states.add(new UrgentTargets(worldInfo, agentInfo, scenarioInfo, pathPlanning,logger, clustering, isReached));
-        states.add(new OpenMST(worldInfo, agentInfo, scenarioInfo, pathPlanning,logger, clustering, isReached));
+        states.add(new UrgentTargets(worldInfo, agentInfo, scenarioInfo, pathPlanning,logger, clustering, isReached, policeTools));
+        states.add(new OpenMST(worldInfo, agentInfo, scenarioInfo, pathPlanning,logger, clustering, isReached, policeTools));
 
         return this;
     }

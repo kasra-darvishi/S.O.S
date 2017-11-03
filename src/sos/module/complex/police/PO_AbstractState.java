@@ -3,7 +3,6 @@ package sos.module.complex.police;
 import adf.agent.info.AgentInfo;
 import adf.agent.info.ScenarioInfo;
 import adf.agent.info.WorldInfo;
-import adf.component.module.algorithm.Clustering;
 import org.apache.log4j.Logger;
 import rescuecore2.standard.entities.*;
 import rescuecore2.worldmodel.EntityID;
@@ -23,10 +22,11 @@ public abstract class PO_AbstractState {
     protected SOSPathPlanning_Police pathPlanning;
     protected EntityID result = null;
     protected Logger logger;
-    protected Clustering clustering;
+    protected PoliceClustering clustering;
     protected ArrayList<EntityID> isReached;
+    protected PoliceTools policeTools;
 
-    public PO_AbstractState(WorldInfo worldInfo, AgentInfo agentInfo, ScenarioInfo scenarioInfo, SOSPathPlanning_Police pp, Logger logger, Clustering clustering, ArrayList<EntityID> isReached){
+    public PO_AbstractState(WorldInfo worldInfo, AgentInfo agentInfo, ScenarioInfo scenarioInfo, SOSPathPlanning_Police pp, Logger logger, PoliceClustering clustering, ArrayList<EntityID> isReached, PoliceTools policeTools){
         this.worldInfo = worldInfo;
         this.agentInfo = agentInfo;
         this.scenarioInfo = scenarioInfo;
@@ -34,6 +34,7 @@ public abstract class PO_AbstractState {
         this.logger = logger;
         this.clustering = clustering;
         this.isReached = isReached;
+        this.policeTools = policeTools;
     }
 
     public abstract EntityID check();
