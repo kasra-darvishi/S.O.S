@@ -63,7 +63,7 @@ public class SampleTacticsPoliceForce extends TacticsPoliceForce
 
         this.messageTool = new MessageTool(scenarioInfo, developData);
 
-        this.isVisualDebug = (scenarioInfo.isDebugMode()
+        this.isVisualDebug = false || (scenarioInfo.isDebugMode()
                 && moduleManager.getModuleConfig().getBooleanValue("VisualDebug", false));
         // init value
         this.clearDistance = scenarioInfo.getClearRepairDistance();
