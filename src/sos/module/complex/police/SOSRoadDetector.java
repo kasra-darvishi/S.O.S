@@ -53,7 +53,6 @@ public class SOSRoadDetector extends RoadDetector
     public SOSRoadDetector(AgentInfo ai, WorldInfo wi, ScenarioInfo si, ModuleManager moduleManager, DevelopData developData)
     {
         super(ai, wi, si, moduleManager, developData);
-
         PropertyConfigurator.configure("log4j.properties");
         logger = Logger.getLogger("SOSRoadDetector");
         isReached = new ArrayList<>();
@@ -62,16 +61,16 @@ public class SOSRoadDetector extends RoadDetector
         switch (scenarioInfo.getMode())
         {
             case PRECOMPUTATION_PHASE:
-                clustering = moduleManager.getModule("", "");
-                this.pathPlanning = /*(SOSPathPlanning_Police)*/ moduleManager.getModule("sos.module.algorithm.SOSPathPlanning", "SampleRoadDetector.PathPlanning");
+                clustering = moduleManager.getModule("SOSRoadDetector.Clustering", "");
+                this.pathPlanning = /*(SOSPathPlanning_Police)*/ moduleManager.getModule("SOSRoadDetector.PathPlanning", null);
                 break;
             case PRECOMPUTED:
-                clustering = moduleManager.getModule("", "");
-                this.pathPlanning = /*(SOSPathPlanning_Police)*/ moduleManager.getModule("sos.module.algorithm.SOSPathPlanning", "SampleRoadDetector.PathPlanning");
+                clustering = moduleManager.getModule("SOSRoadDetector.Clustering", "");
+                this.pathPlanning = /*(SOSPathPlanning_Police)*/ moduleManager.getModule("SOSRoadDetector.PathPlanning", null);
                 break;
             case NON_PRECOMPUTE:
-                clustering = moduleManager.getModule("", "");
-                this.pathPlanning = /*(SOSPathPlanning_Police)*/ moduleManager.getModule("sos.module.algorithm.SOSPathPlanning", "SampleRoadDetector.PathPlanning");
+                clustering = moduleManager.getModule("SOSRoadDetector.Clustering", "");
+                this.pathPlanning = /*(SOSPathPlanning_Police)*/ moduleManager.getModule("SOSRoadDetector.PathPlanning", null);
                 break;
         }
         registerModule(this.pathPlanning);
@@ -88,6 +87,7 @@ public class SOSRoadDetector extends RoadDetector
     {
 
         EntityID target;
+        result = agentInfo.getPosition();
 
         for (PO_AbstractState state: states){
             target = state.check();
@@ -110,12 +110,14 @@ public class SOSRoadDetector extends RoadDetector
     public RoadDetector precompute(PrecomputeData precomputeData)
     {
         super.precompute(precomputeData);
+
         if (this.getCountPrecompute() >= 2)
         {
             return this;
         }
         pathPlanning.precompute(precomputeData);
         clustering.precompute(precomputeData);
+
 
         return this;
     }
@@ -128,21 +130,23 @@ public class SOSRoadDetector extends RoadDetector
         {
             return this;
         }
-
-        states.add(new UrgentTargets(worldInfo, agentInfo, scenarioInfo, pathPlanning,logger, clustering, isReached, policeTools));
-        states.add(new OpenMST(worldInfo, agentInfo, scenarioInfo, pathPlanning,logger, clustering, isReached, policeTools));
+        clustering.resume(precomputeData);
+        pathPlanning.resume(precomputeData);
 
         centerIDs = precomputeData.getEntityIDList("sample.clustering.centers");
-
         //TODO kasra >> this could be done only once in the precompute phase. so change if it takes shorter time!
-        //calculates MST on center of clusters
         findMST();
+
+//        states.add(new UrgentTargets(worldInfo, agentInfo, scenarioInfo, pathPlanning,logger, clustering, isReached, policeTools));
+        states.add(new OpenMST(worldInfo, agentInfo, scenarioInfo, pathPlanning,logger, clustering, isReached, policeTools));
+
 
         return this;
     }
 
+    //calculates MST on center of clusters
     private void findMST() {
-        policeTools.prime(centerIDs.size(), centerIDs, true);
+        policeTools.prime(centerIDs, true);
     }
 
     @Override
@@ -154,7 +158,16 @@ public class SOSRoadDetector extends RoadDetector
             return this;
         }
 
-        states.add(new UrgentTargets(worldInfo, agentInfo, scenarioInfo, pathPlanning,logger, clustering, isReached, policeTools));
+        clustering.preparate();
+        pathPlanning.preparate();
+
+        centerIDs = clustering.centerIDs;
+        System.out.println("preparate is running");
+
+        findMST();
+
+
+//        states.add(new UrgentTargets(worldInfo, agentInfo, scenarioInfo, pathPlanning,logger, clustering, isReached, policeTools));
         states.add(new OpenMST(worldInfo, agentInfo, scenarioInfo, pathPlanning,logger, clustering, isReached, policeTools));
 
         return this;
@@ -168,63 +181,7 @@ public class SOSRoadDetector extends RoadDetector
         {
             return this;
         }
-        if (this.result != null)
-        {
-            if (this.agentInfo.getPosition().equals(this.result))
-            {
-                StandardEntity entity = this.worldInfo.getEntity(this.result);
-                if (entity instanceof Building)
-                {
-                    this.result = null;
-                }
-                else if (entity instanceof Road)
-                {
-                    Road road = (Road) entity;
-                    if (!road.isBlockadesDefined() || road.getBlockades().isEmpty())
-                    {
-                        this.targetAreas.remove(this.result);
-                        this.result = null;
-                    }
-                }
-            }
-        }
-        Set<EntityID> changedEntities = this.worldInfo.getChanged().getChangedEntities();
-        for (CommunicationMessage message : messageManager.getReceivedMessageList())
-        {
-            Class<? extends CommunicationMessage> messageClass = message.getClass();
-            if (messageClass == MessageAmbulanceTeam.class)
-            {
-                this.reflectMessage((MessageAmbulanceTeam) message);
-            }
-            else if (messageClass == MessageFireBrigade.class)
-            {
-                this.reflectMessage((MessageFireBrigade) message);
-            }
-            else if (messageClass == MessageRoad.class)
-            {
-                this.reflectMessage((MessageRoad) message, changedEntities);
-            }
-            else if (messageClass == MessagePoliceForce.class)
-            {
-                this.reflectMessage((MessagePoliceForce) message);
-            }
-            else if (messageClass == CommandPolice.class)
-            {
-                this.reflectMessage((CommandPolice) message);
-            }
-        }
-        for (EntityID id : this.worldInfo.getChanged().getChangedEntities())
-        {
-            StandardEntity entity = this.worldInfo.getEntity(id);
-            if (entity instanceof Road)
-            {
-                Road road = (Road) entity;
-                if (!road.isBlockadesDefined() || road.getBlockades().isEmpty())
-                {
-                    this.targetAreas.remove(id);
-                }
-            }
-        }
+
         return this;
     }
 

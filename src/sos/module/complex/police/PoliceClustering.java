@@ -34,7 +34,7 @@ public class PoliceClustering extends StaticClustering {
     private Collection<StandardEntity> entities;
 
     private List<StandardEntity> centerList;
-    private List<EntityID> centerIDs;
+    public List<EntityID> centerIDs;
     private Map<Integer, List<StandardEntity>> clusterEntitiesList;
     private List<List<EntityID>> clusterEntityIDsList;
 
@@ -251,13 +251,13 @@ public class PoliceClustering extends StaticClustering {
         //this.clusterEntitiesList.sort(comparing(List::size, reverseOrder()));
 
         if(this.assignAgentsFlag) {
-            List<StandardEntity> firebrigadeList = new ArrayList<>(this.worldInfo.getEntitiesOfType(StandardEntityURN.FIRE_BRIGADE));
+//            List<StandardEntity> firebrigadeList = new ArrayList<>(this.worldInfo.getEntitiesOfType(StandardEntityURN.FIRE_BRIGADE));
             List<StandardEntity> policeforceList = new ArrayList<>(this.worldInfo.getEntitiesOfType(StandardEntityURN.POLICE_FORCE));
-            List<StandardEntity> ambulanceteamList = new ArrayList<>(this.worldInfo.getEntitiesOfType(StandardEntityURN.AMBULANCE_TEAM));
+//            List<StandardEntity> ambulanceteamList = new ArrayList<>(this.worldInfo.getEntitiesOfType(StandardEntityURN.AMBULANCE_TEAM));
 
-            this.assignAgents(this.worldInfo, firebrigadeList);
+//            this.assignAgents(this.worldInfo, firebrigadeList);
             this.assignAgents(this.worldInfo, policeforceList);
-            this.assignAgents(this.worldInfo, ambulanceteamList);
+//            this.assignAgents(this.worldInfo, ambulanceteamList);
         }
 
         this.centerIDs = new ArrayList<>();
@@ -357,7 +357,7 @@ public class PoliceClustering extends StaticClustering {
     private void assignAgents(WorldInfo world, List<StandardEntity> agentList) {
         int clusterIndex = 0;
         while (agentList.size() > 0) {
-            StandardEntity center = this.centerList.get(clusterIndex);
+            StandardEntity center = this.centerList.get(clusterIndex % centerList.size());
             StandardEntity agent = this.getNearAgent(world, agentList, center);
             this.clusterEntitiesList.get(clusterIndex).add(agent);
             centerMap.put(agent.getID(), center.getID());

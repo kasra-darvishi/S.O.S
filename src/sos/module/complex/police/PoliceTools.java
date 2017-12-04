@@ -22,7 +22,7 @@ public class PoliceTools {
     public PathPlanning pathPlanning;
     public WorldInfo worldInfo;
     public Map<EntityID, AtomicInteger> roadIndex;
-    boolean[][] mstOfCenters;
+    private boolean[][] matrix;
     private List<EntityID>[][] tempPaths;
     public Map<EntityID, Map<EntityID, List<EntityID>>> pathsBetweenCenters;
 
@@ -38,11 +38,12 @@ public class PoliceTools {
         };
     }
 
-    public Map<EntityID, Map<EntityID, List<EntityID>>> prime(int numberOfNodes, List<EntityID> nodes, boolean calcForClusterCenters){
+    public Map<EntityID, Map<EntityID, List<EntityID>>> prime( List<EntityID> nodes, boolean calcForClusterCenters){
 
         logger.debug(">> prime...\n\n");
 
-        boolean[][] matrix = new boolean[numberOfNodes][numberOfNodes];
+        int numberOfNodes = nodes.size();
+        matrix = new boolean[numberOfNodes][numberOfNodes];
         double[][] weights = calcWeights(numberOfNodes, nodes);
 
         int from = 0;
@@ -109,12 +110,12 @@ public class PoliceTools {
             }
         };
 
-        for (int i = 0; i < mstOfCenters.length; i++){
-            for (int j = 0; j < mstOfCenters.length; j++){
-                if (mstOfCenters[i][j]){
+        for (int i = 0; i < matrix.length; i++){
+            for (int j = 0; j < matrix.length; j++){
+                if (matrix[i][j]){
                     EntityID from = getIDFromIndex(i);
                     EntityID to = getIDFromIndex(j);
-                    pathsBetweenCenters.get(from).put(to, tempPaths[i][j]);
+                    tempPathsBetweenCenters.get(from).put(to, tempPaths[i][j]);
                 }
             }
         }
@@ -124,7 +125,7 @@ public class PoliceTools {
         if (save)
             pathsBetweenCenters = tempPathsBetweenCenters;
 
-        return pathsBetweenCenters;
+        return tempPathsBetweenCenters;
     }
 
     private double[][] calcWeights(int numberOfNodes, List<EntityID> nodes){
