@@ -3,15 +3,15 @@ package sos.module.complex.police;
 import adf.agent.info.AgentInfo;
 import adf.agent.info.ScenarioInfo;
 import adf.agent.info.WorldInfo;
+import org.apache.commons.math3.util.Pair;
 import org.apache.log4j.Logger;
 import rescuecore2.standard.entities.Area;
+import rescuecore2.standard.entities.Building;
+import rescuecore2.standard.entities.StandardEntity;
 import rescuecore2.worldmodel.EntityID;
 import sos.module.algorithm.SOSPathPlanning_Police;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by kasra on 10/19/17.
@@ -21,7 +21,7 @@ public class OpenMST extends PO_AbstractState {
     private boolean precomputed = /*false*/ true;
 //    private List<EntityID> nodes;
     private List<EntityID>[][] paths;
-    private Map<EntityID, Map<EntityID, List<EntityID>>> pathsBetweenCenters;
+    private Map<EntityID, Map<EntityID, List<EntityID>>>    pathsBetweenCenters;
     private EntityID myCenter;
     private List<EntityID> conectedCenters, centers;
     private EntityID entityOfWorkingCenter = null;
@@ -29,6 +29,7 @@ public class OpenMST extends PO_AbstractState {
     private boolean goingCenter = false;
     private Collection<EntityID> myClusterEntities;
     private boolean allCentersConnected = false;
+    private ArrayList<Pair<EntityID,Boolean>> chosenCenters;
 
 
     public OpenMST(WorldInfo worldInfo, AgentInfo agentInfo, ScenarioInfo scenarioInfo, SOSPathPlanning_Police pp, Logger logger, PoliceClustering clustering, ArrayList<EntityID> isReached, PoliceTools policeTools) {
@@ -52,17 +53,64 @@ public class OpenMST extends PO_AbstractState {
             myCenter = clustering.centerMap.get(agentInfo.getID());
             myClusterEntities = clustering.getClusterEntityIDs(clustering.getClusterIndex(agentInfo.getID()));
             conectedCenters = new ArrayList<>();
-            centers = new ArrayList<>();
-            for (Map.Entry<EntityID, Map<EntityID, java.util.List<EntityID>>> entry: pathsBetweenCenters.entrySet()) {
-                if (entry.getKey().getValue() == agentInfo.getID().getValue()){
-                    for (Map.Entry<EntityID, List<EntityID>> entry2 : entry.getValue().entrySet()) {
-                        centers.add(entry2.getKey());
-                    }
-                }
-            }
-
+            chosenCenters = new ArrayList<>();
+            System.out.println("\n............. " + agentInfo.getID().getValue() + " ..............");
+            System.out.println("my center: " + myCenter);
+            //it may use so much time
+            //check for large number of nodes
+            chooseCenters();
             goToCenter();
 
+        }
+
+    }
+
+    //chooses centers to connect to its center
+    private void chooseCenters() {
+//        printMST();
+        centers = new ArrayList<>();
+        for (Map.Entry<EntityID, Map<EntityID, List<EntityID>>> entry: pathsBetweenCenters.entrySet()) {
+            if (entry.getKey().getValue() == myCenter.getValue()){
+                for (Map.Entry<EntityID, List<EntityID>> entry2 : entry.getValue().entrySet()) {
+                    centers.add(entry2.getKey());
+                }
+            }
+        }
+
+
+        if (centers.size() == 0){
+            logger.debug("i have no center to connect to mine " + agentInfo.getID().getValue());
+            return;
+        }
+
+        if (centers.size() == 1){
+            logger.debug("my size");
+            if (pathsBetweenCenters.get(centers.get(0)).entrySet().size() == 1) {
+                chosenCenters.add(new Pair<EntityID, Boolean>(centers.get(0), false));
+                logger.debug("connect straight to other center");
+            }else{
+                chosenCenters.add(new Pair<EntityID, Boolean>(centers.get(0), true));
+                logger.debug("connect until your cluster");
+            }
+        }else {
+            ArrayList<Map.Entry<EntityID, Map<EntityID, List<EntityID>>>> toRemove = new ArrayList<>();
+            for (Map.Entry<EntityID, Map<EntityID, List<EntityID>>> entry : pathsBetweenCenters.entrySet()) {
+                if (entry.getValue().entrySet().size() == 1){
+                    toRemove.add(entry);
+                }
+            }
+            pathsBetweenCenters.entrySet().removeAll(toRemove);
+            for (Map.Entry<EntityID, Map<EntityID, List<EntityID>>> entry : pathsBetweenCenters.entrySet()){
+                ArrayList<Map.Entry<EntityID, List<EntityID>>> toRemove2 = new ArrayList<>();
+                for (Map.Entry<EntityID, List<EntityID>> entry2: entry.getValue().entrySet()){
+                    for (Map.Entry<EntityID, Map<EntityID, List<EntityID>>> r: toRemove){
+                        if (entry2.getKey().getValue() == r.getKey().getValue())
+                            toRemove2.add(entry2);
+                    }
+                }
+                entry.getValue().entrySet().removeAll(toRemove2);
+            }
+            chooseCenters();
         }
 
     }
@@ -83,43 +131,40 @@ public class OpenMST extends PO_AbstractState {
             }else {
                 logger.debug("still going to my center: "+ myCenter.getValue() + " agent: " + agentInfo.getID().getValue());
                 goToCenter();
-                logger.debug("entity to be cleared: " + result);
+                logger.debug("entity to be cleared: " + result+ " agent: " + agentInfo.getID().getValue());
+                policeTools.probableFutureTarget = result;
                 return result;
             }
         }else if (entityOfWorkingCenter != null){
             if (agentInfo.getPosition().getValue() != entityOfWorkingCenter.getValue()){
                 logger.debug("still connecting to other center: "+ entityOfWorkingCenter.getValue() + " agent: " + agentInfo.getID().getValue());
-                List<EntityID> path = pathPlanning.setFrom(agentInfo.getPosition()).setDestination(entityOfWorkingCenter).calc().getResult();
-                if (path == null || path.size() == 0){
-                    logger.debug("could find no path!! " + agentInfo.getPosition().getValue() + " to " + entityOfWorkingCenter.getValue());
-                }
-                result = path.get(path.size() - 1);
-                logger.debug("entity to be cleared: " + result);
+                result = entityOfWorkingCenter;
+                logger.debug("entity to be cleared: " + result+ " agent: " + agentInfo.getID().getValue());
+                policeTools.probableFutureTarget = result;
                 return result;
             }else {
                 centers.remove(currentWorkingCenter);
                 logger.debug("center: " + myCenter.getValue() + " connected to: " + currentWorkingCenter.getValue() + " by: " + agentInfo.getID().getValue());
                 entityOfWorkingCenter = null;
                 currentWorkingCenter = null;
-                if (centers.size() != 0){
-                    goToCenter();
-                    logger.debug("entity to be cleared: " + result);
-                    return result;
-                }else {
-                    allCentersConnected = true;
-                    return null;
-                }
+                allCentersConnected = true;
+                logger.debug("clearde my share of MST: " + agentInfo.getID().getValue() + " cycle: " + agentInfo.getTime());
+                policeTools.probableFutureTarget = null;
+                return null;
             }
         }
-        for (EntityID centerID: centers){
-            if (conectedCenters.contains(centerID))
+
+        for (Pair<EntityID,Boolean> pair: chosenCenters){
+            logger.debug("a center: " + pair.getFirst().getValue());
+            if (conectedCenters.contains(pair.getFirst()))
                 continue;
-            connectTo(centerID);
-            logger.debug("entity to be cleared: " + result);
+            connectTo(pair.getFirst(), pair.getSecond());
+            logger.debug("entity to be cleared: " + result+ " agent: " + agentInfo.getID().getValue());
+            policeTools.probableFutureTarget = result;
             return result;
         }
 
-
+        policeTools.probableFutureTarget = null;
         return null;
     }
 
@@ -139,7 +184,15 @@ public class OpenMST extends PO_AbstractState {
         return false;
     }
 
-    private void connectTo(EntityID centerID) {
+    private void connectTo(EntityID centerID, boolean goStraight) {
+
+        if (goStraight){
+            result = centerID;
+            entityOfWorkingCenter = centerID;
+            currentWorkingCenter = centerID;
+            logger.debug("entity to be connected from MST is center it self "+ agentInfo.getID().getValue());
+            return;
+        }
 
         List<EntityID> path = pathPlanning.setFrom(agentInfo.getPosition()).setDestination(centerID).calc().getResult();
         if (path == null || path.size() == 0){
@@ -156,7 +209,7 @@ public class OpenMST extends PO_AbstractState {
             }
             entityOfWorkingCenter = id;
             currentWorkingCenter = centerID;
-            logger.debug("entity to be connected from MST: " + id.getValue());
+            logger.debug("entity to be connected from MST: " + id.getValue()+ " agent: " + agentInfo.getID().getValue());
             if (i == 0)
                 logger.debug("how the fuck is this possible?!! #117");
             break;
@@ -168,15 +221,26 @@ public class OpenMST extends PO_AbstractState {
 
     private void goToCenter() {
 
-        List<EntityID> path = pathPlanning.setFrom(agentInfo.getPosition()).setDestination(myCenter).calc().getResult();
-        if (path == null || path.size() == 0){
-            logger.debug("could find no path!! " + agentInfo.getPosition().getValue() + " to " + myCenter.getValue());
-            result = null;
-            return;
-        }
+//        List<EntityID> path = pathPlanning.setFrom(agentInfo.getPosition()).setDestination(myCenter).calc().getResult();
+//        if (path == null || path.size() == 0){
+//            logger.debug("could find no path!! " + agentInfo.getPosition().getValue() + " to " + myCenter.getValue());
+//            result = null;
+//            return;
+//        }
         goingCenter = true;
-        result = path.get(path.size() - 1);
+//        result = path.get(path.size() - 1);
 
+        result = myCenter;
+    }
+
+    private void printMST(){
+        System.out.println("\nnew mst\n");
+        for (Map.Entry<EntityID, Map<EntityID, List<EntityID>>> entry: pathsBetweenCenters.entrySet()) {
+            System.out.println("\n### " + entry.getKey().getValue());
+            for (Map.Entry<EntityID, List<EntityID>> entry2 : entry.getValue().entrySet()) {
+                System.out.println("   " + entry2.getKey().getValue());
+            }
+        }
     }
 
 }
