@@ -137,7 +137,7 @@ public class SOSRoadDetector extends RoadDetector
         //TODO kasra >> this could be done only once in the precompute phase. so change if it takes shorter time!
         findMST();
 
-//        states.add(new UrgentTargets(worldInfo, agentInfo, scenarioInfo, pathPlanning,logger, clustering, isReached, policeTools));
+        states.add(new UrgentTargets(worldInfo, agentInfo, scenarioInfo, pathPlanning,logger, clustering, isReached, policeTools));
         states.add(new OpenMST(worldInfo, agentInfo, scenarioInfo, pathPlanning,logger, clustering, isReached, policeTools));
 
 
@@ -167,7 +167,7 @@ public class SOSRoadDetector extends RoadDetector
         findMST();
 
 
-//        states.add(new UrgentTargets(worldInfo, agentInfo, scenarioInfo, pathPlanning,logger, clustering, isReached, policeTools));
+        states.add(new UrgentTargets(worldInfo, agentInfo, scenarioInfo, pathPlanning,logger, clustering, isReached, policeTools));
         states.add(new OpenMST(worldInfo, agentInfo, scenarioInfo, pathPlanning,logger, clustering, isReached, policeTools));
 
         return this;

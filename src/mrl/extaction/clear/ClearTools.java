@@ -174,7 +174,7 @@ public class ClearTools {
             GuideLine line1 = tempGuidelines.get(j);
             double a = Util.angleBetween2Lines(line1, targetGuideLine);
             double dist = line1.getLength() * Math.sin(Math.toRadians(a));
-            if (dist > scenarioInfo.getClearRepairRad()) {
+            if (dist > 2000/*scenarioInfo.getClearRepairRad()*/) {
                 targetGuideLine = line1;
                 break;
             }
@@ -589,8 +589,8 @@ public class ClearTools {
                 endPoint2.getY() == maxY2 ? maxY2 - y2 : minY2 + y2);
         l2 = new Line2D(p1, p2);
 
-        l1 = Util.clipLine(l1, Util.lineLength(l1) - scenarioInfo.getClearRepairRad() / 2 + 100, true);
-        l2 = Util.clipLine(l2, Util.lineLength(l2) - scenarioInfo.getClearRepairRad() / 2 + 100, true);
+        l1 = Util.clipLine(l1, Util.lineLength(l1) - 2000/*scenarioInfo.getClearRepairRad()*/ / 2 + 100, true);
+        l2 = Util.clipLine(l2, Util.lineLength(l2) - 2000/*scenarioInfo.getClearRepairRad()*/ / 2 + 100, true);
         return new Pair<Line2D, Line2D>(l1, l2);
     }
 

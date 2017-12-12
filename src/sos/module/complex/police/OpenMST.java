@@ -54,8 +54,6 @@ public class OpenMST extends PO_AbstractState {
             myClusterEntities = clustering.getClusterEntityIDs(clustering.getClusterIndex(agentInfo.getID()));
             conectedCenters = new ArrayList<>();
             chosenCenters = new ArrayList<>();
-            System.out.println("\n............. " + agentInfo.getID().getValue() + " ..............");
-            System.out.println("my center: " + myCenter);
             //it may use so much time
             //check for large number of nodes
             chooseCenters();

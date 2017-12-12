@@ -393,7 +393,7 @@ public class ClearAreaActExecutor extends ClearActExecutor {
 
     private int getClearRadius() {
 
-        return scenarioInfo.getClearRepairRad();
+        return 2000/*scenarioInfo.getClearRepairRad()*/;
     }
 
 

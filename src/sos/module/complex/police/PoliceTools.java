@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class PoliceTools {
 
+    public EntityID probableFutureTarget;
     private Logger logger;
     public PathPlanning pathPlanning;
     public WorldInfo worldInfo;
@@ -115,7 +116,7 @@ public class PoliceTools {
                 if (matrix[i][j]){
                     EntityID from = getIDFromIndex(i);
                     EntityID to = getIDFromIndex(j);
-                    tempPathsBetweenCenters.get(from).put(to, tempPaths[i][j]);
+                    tempPathsBetweenCenters.get(from).put(to, null);
                 }
             }
         }
